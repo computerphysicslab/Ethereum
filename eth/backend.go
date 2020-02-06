@@ -70,7 +70,7 @@ type Ethereum struct {
 	shutdownChan chan bool
 
 	server *p2p.Server
-
+	
 	// Handlers
 	txPool          *core.TxPool
 	blockchain      *core.BlockChain
@@ -122,7 +122,9 @@ func New(ctx *node.ServiceContext, config *Config) (*Ethereum, error) {
 	if !config.SyncMode.IsValid() {
 		return nil, fmt.Errorf("invalid sync mode %d", config.SyncMode)
 	}
-	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) <= 0 {
+	// if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) <= 0 {
+	// LydianElectrum: Allowing miners to set gasPrice threshold to zero, in order to mine bootstrapping transactions
+	if config.Miner.GasPrice == nil || config.Miner.GasPrice.Cmp(common.Big0) < 0 {
 		log.Warn("Sanitizing invalid miner gas price", "provided", config.Miner.GasPrice, "updated", DefaultConfig.Miner.GasPrice)
 		config.Miner.GasPrice = new(big.Int).Set(DefaultConfig.Miner.GasPrice)
 	}
