@@ -18,6 +18,8 @@ package core
 
 import (
 	"math/big"
+	"fmt"
+	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/consensus"
@@ -91,7 +93,58 @@ func CanTransfer(db vm.StateDB, addr common.Address, amount *big.Int) bool {
 }
 
 // Transfer subtracts amount from sender and adds amount to recipient using the given Db
-func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) {
-	db.SubBalance(sender, amount)
-	db.AddBalance(recipient, amount)
+// func Transfer(db vm.StateDB, sender, recipient common.Address, amount *big.Int) { // LydianElectrum requires knowledge of evm, not just evm.StateDB
+func Transfer(evm *vm.EVM, sender, recipient common.Address, amount *big.Int) {
+	// db.SubBalance(sender, amount) // LydianElectrum
+	// evm.StateDB.SubBalance(sender, amount) // LydianElectrum: an ERC-20 transfer overrides this operation
+	// db.AddBalance(recipient, amount) // LydianElectrum
+	// evm.StateDB.AddBalance(recipient, amount) // LydianElectrum: an ERC-20 transfer overrides this operation
+
+	// LydianElectrum: CryptoEuro is an ERC-20 SC deployed on bootstrapping. Being the first one deployed, its address becomes predictable
+	address := common.HexToAddress("0x88e726de6cbadc47159c6ccd4f7868ae7a037730") // LydianElectrum: CriptoEuro contract hardcoded address
+	contract := vm.AccountRef(address)
+	// caller := vm.AccountRef(sender)
+
+	methodHash := "222f5be0" // transferInternal method
+	addressTo := recipient.String()[2:] // removing leading 0x
+	addressSender := sender.String()[2:] // removing leading 0x
+
+	// padding addressTo
+	for len(addressTo) < 64 { addressTo = "0" + addressTo }
+
+	// padding addressSender
+	for len(addressSender) < 64 { addressSender = "0" + addressSender }
+
+	// convert amount to hexadecimal
+	amountStr := fmt.Sprintf("%x", amount)
+
+	// padding
+	for len(amountStr) < 64 {
+		amountStr = "0" + amountStr
+	}
+
+	// sum up everything into an hex string (No 0x behind)
+	inputDataHex := methodHash + addressSender + addressTo + amountStr
+
+	fmt.Println("inputDataHex: ", inputDataHex)
+
+	// convert hex to []byte
+	inputData, err := hex.DecodeString(inputDataHex)
+
+	gas := uint64(3000000)
+	value := new(big.Int)
+
+	fmt.Println("sender: ", sender)
+	fmt.Println("senderString: ", sender.String())
+	fmt.Println("addressSender: ", addressSender)
+	fmt.Println("addressTo: ", addressTo)
+	fmt.Println("amountStr: ", amountStr)
+	fmt.Println("address: ", address)
+
+	// LydianElectrum: this is the ERC-20 transfer that overrides native coin operations
+	ret, returnGas, err := evm.CallCode(contract, address, inputData, gas, value)
+
+	fmt.Println("ret: ", ret)
+	fmt.Println("returnGas: ", returnGas)
+	fmt.Println("err: ", err)
 }
