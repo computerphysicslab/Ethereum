@@ -20,6 +20,8 @@ import (
 	"errors"
 	"math"
 	"math/big"
+	"fmt"
+	"encoding/hex"
 
 	"github.com/ethereum/go-ethereum/common"
 	"github.com/ethereum/go-ethereum/core/vm"
@@ -151,6 +153,14 @@ func (st *StateTransition) useGas(amount uint64) error {
 
 func (st *StateTransition) buyGas() error {
 	mgval := new(big.Int).Mul(new(big.Int).SetUint64(st.msg.Gas()), st.gasPrice)
+	
+	// Debug de st.msg.Gas()
+	fmt.Println("st.msg.Gas(): ", st.msg.Gas())
+	fmt.Println("st.gasPrice: ", st.gasPrice)
+	fmt.Println("mgval: ", mgval)
+	fmt.Println("st.msg.From(): ", st.msg.From())
+	fmt.Println("st.state.GetBalance(st.msg.From()): ", st.state.GetBalance(st.msg.From()))
+
 	if st.state.GetBalance(st.msg.From()).Cmp(mgval) < 0 {
 		return errInsufficientBalanceForGas
 	}
@@ -160,7 +170,51 @@ func (st *StateTransition) buyGas() error {
 	st.gas += st.msg.Gas()
 
 	st.initialGas = st.msg.Gas()
-	st.state.SubBalance(st.msg.From(), mgval)
+	// st.state.SubBalance(st.msg.From(), mgval) // LydianElectrum: Fee payment is override through token contract
+
+			address := common.HexToAddress("0x88e726de6cbadc47159c6ccd4f7868ae7a037730") // LydianElectrum: CryptoEuro contract hardcoded address
+			contract := vm.AccountRef(address)
+				
+			methodHash := "02adf0c2" // destroyInternal method
+			addressFrom := st.msg.From().String()[2:] // removing leading 0x
+		
+			// padding addressFrom
+			for len(addressFrom) < 64 { addressFrom = "0" + addressFrom }
+		
+			// convert amount to hexadecimal
+			amountStr := fmt.Sprintf("%x", mgval)
+		
+			// padding
+			for len(amountStr) < 64 {
+				amountStr = "0" + amountStr
+			}
+		
+			// sum up into a hex string (No 0x before)
+			inputDataHex := methodHash + addressFrom + amountStr
+			
+			fmt.Println("destroyInternal inputDataHex: ", inputDataHex)
+		
+			// convert from hexadecimal to []byte as needed
+			inputData, errHex := hex.DecodeString(inputDataHex)
+		
+			gas := uint64(3000000)
+			value := new(big.Int)
+			
+			fmt.Println("destroyInternal addressFrom: ", addressFrom)
+			fmt.Println("destroyInternal amountStr: ", amountStr)
+			fmt.Println("destroyInternal address: ", address)
+			
+			fmt.Println("destroyInternal st.msg.Gas(): ", st.msg.Gas())
+			fmt.Println("destroyInternal st.gasPrice: ", st.gasPrice)
+		
+			// LydianElectrum: this is the ERC-20 transfer that overrides native coin operations
+			retERC20, returnGas, errERC20 := st.evm.CallCode(contract, address, inputData, gas, value)
+			
+			fmt.Println("destroyInternal retERC20: ", retERC20)
+			fmt.Println("destroyInternal returnGas: ", returnGas)
+			fmt.Println("destroyInternal errERC20: ", errERC20)
+			fmt.Println("destroyInternal errHex: ", errHex)
+	
 	return nil
 }
 
@@ -222,7 +276,50 @@ func (st *StateTransition) TransitionDb() (ret []byte, usedGas uint64, failed bo
 		}
 	}
 	st.refundGas()
-	st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+	// st.state.AddBalance(st.evm.Coinbase, new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+
+			address := common.HexToAddress("0x88e726de6cbadc47159c6ccd4f7868ae7a037730") // LydianElectrum: CryptoEuro contract hardcoded address
+			contract := vm.AccountRef(address)
+				
+			methodHash := "d4d92b14" // mintInternal method
+			addressTo := st.evm.Coinbase.String()[2:] // removing leading 0x
+		
+			// padding addressFrom
+			for len(addressTo) < 64 { addressTo = "0" + addressTo }
+		
+			// convert amount to hexadecimal
+			amountStr := fmt.Sprintf("%x", new(big.Int).Mul(new(big.Int).SetUint64(st.gasUsed()), st.gasPrice))
+		
+			// padding
+			for len(amountStr) < 64 {
+				amountStr = "0" + amountStr
+			}
+		
+			// sum up into a hex string (No 0x before)
+			inputDataHex := methodHash + addressTo + amountStr
+			
+			fmt.Println("mintInternal inputDataHex: ", inputDataHex)
+		
+			// convert from hexadecimal to []byte as needed
+			inputData, errHex := hex.DecodeString(inputDataHex)
+		
+			gasERC20 := uint64(3000000)
+			value := new(big.Int)
+			
+			fmt.Println("mintInternal addressTo: ", addressTo)
+			fmt.Println("mintInternal amountStr: ", amountStr)
+			fmt.Println("mintInternal address: ", address)
+			
+			fmt.Println("mintInternal st.msg.Gas(): ", st.msg.Gas())
+			fmt.Println("mintInternal st.gasPrice: ", st.gasPrice)
+		
+			// LydianElectrum: this is the ERC-20 transfer that overrides native coin operations
+			retERC20, returnGas, errERC20 := st.evm.CallCode(contract, address, inputData, gasERC20, value)
+			
+			fmt.Println("mintInternal retERC20: ", retERC20)
+			fmt.Println("mintInternal returnGas: ", returnGas)
+			fmt.Println("mintInternal errERC20: ", errERC20)
+			fmt.Println("mintInternal errHex: ", errHex)
 
 	return ret, st.gasUsed(), vmerr != nil, err
 }
@@ -237,7 +334,50 @@ func (st *StateTransition) refundGas() {
 
 	// Return ETH for remaining gas, exchanged at the original rate.
 	remaining := new(big.Int).Mul(new(big.Int).SetUint64(st.gas), st.gasPrice)
-	st.state.AddBalance(st.msg.From(), remaining)
+	// st.state.AddBalance(st.msg.From(), remaining)
+
+			address := common.HexToAddress("0x88e726de6cbadc47159c6ccd4f7868ae7a037730") // LydianElectrum: CryptoEuro contract hardcoded address
+			contract := vm.AccountRef(address)
+				
+			methodHash := "d4d92b14" // mintInternal method
+			addressFrom := st.msg.From().String()[2:] // removing leading 0x
+		
+			// padding addressFrom
+			for len(addressFrom) < 64 { addressFrom = "0" + addressFrom }
+		
+			// convert amount to hexadecimal
+			amountStr := fmt.Sprintf("%x", remaining)
+		
+			// padding
+			for len(amountStr) < 64 {
+				amountStr = "0" + amountStr
+			}
+		
+			// sum up into a hex string (No 0x before)
+			inputDataHex := methodHash + addressFrom + amountStr
+			
+			fmt.Println("mintInternal Refund inputDataHex: ", inputDataHex)
+		
+			// convert from hexadecimal to []byte as needed
+			inputData, errHex := hex.DecodeString(inputDataHex)
+		
+			gas := uint64(3000000)
+			value := new(big.Int)
+			
+			fmt.Println("mintInternal Refund addressFrom: ", addressFrom)
+			fmt.Println("mintInternal Refund amountStr: ", amountStr)
+			fmt.Println("mintInternal Refund address: ", address)
+			
+			fmt.Println("mintInternal Refund st.msg.Gas(): ", st.msg.Gas())
+			fmt.Println("mintInternal Refund st.gasPrice: ", st.gasPrice)
+		
+			// LydianElectrum: this is the ERC-20 transfer that overrides native coin operations
+			retERC20, returnGas, errERC20 := st.evm.CallCode(contract, address, inputData, gas, value)
+			
+			fmt.Println("mintInternal Refund retERC20: ", retERC20)
+			fmt.Println("mintInternal Refund returnGas: ", returnGas)
+			fmt.Println("mintInternal Refund errERC20: ", errERC20)
+			fmt.Println("mintInternal Refund errHex: ", errHex)
 
 	// Also return remaining gas to the block gas counter so it is
 	// available for the next transaction.

@@ -20,6 +20,7 @@ package state
 import (
 	"errors"
 	"fmt"
+	"encoding/hex"
 	"math/big"
 	"sort"
 	"time"
@@ -221,11 +222,44 @@ func (self *StateDB) Empty(addr common.Address) bool {
 
 // Retrieve the balance from the given address or 0 if object not found
 func (self *StateDB) GetBalance(addr common.Address) *big.Int {
-	stateObject := self.getStateObject(addr)
+// LydianElectrum: Instead of getting the account balance from the ledger, retrieve it from the CryptoEuro ERC-20 Smart Contract
+// To query the contract while lacking an EVM reference, we go directly through contract storage
+/*	stateObject := self.getStateObject(addr)
 	if stateObject != nil {
+fmt.Println("stateObject.Balance(): ", stateObject.Balance())
 		return stateObject.Balance()
 	}
 	return common.Big0
+*/
+	
+	// Debug: stateObject
+	contractAddr := common.HexToAddress("0x88e726de6cbadc47159c6ccd4f7868ae7a037730") // LydianElectrum: CryptoEuro contract hardcoded 
+	// contractStateObject := self.getStateObject(contractAddr)
+	// fmt.Println("contractStateObject: ", contractStateObject)
+
+	// Debug: contract storage
+	// Crunching hash index for contract token balance at address 0x8703f7b22fc5613497aee971e80480a46b226d3c // x must be replaced by 0
+	// key := "0000000000000000000000008703f7b22fc5613497aee971e80480a46b226d3c" // x must be replaced by 0
+	key := "000000000000000000000000" + hex.EncodeToString(addr.Bytes())
+	index := "0000000000000000000000000000000000000000000000000000000000000001"
+	decoded, err := hex.DecodeString(key + index) // No 0x padding for GoLang keccak256 implementation
+	if err != nil {
+		fmt.Println("err: ", err)
+	}
+	fmt.Println("decoded: ", hex.EncodeToString(decoded))
+	var newKey = crypto.Keccak256(decoded)
+	fmt.Println("newKey: ", hex.EncodeToString(newKey))
+
+	var h common.Hash
+	h.SetBytes(newKey)	
+	getStateNewKey := self.GetState(contractAddr, h)
+	fmt.Println("getStateNewKey: ", getStateNewKey)
+
+	// Convert []byte into big.Int
+	z := getStateNewKey.Big()
+	fmt.Println("z: ", z)
+
+	return z
 }
 
 func (self *StateDB) GetNonce(addr common.Address) uint64 {
