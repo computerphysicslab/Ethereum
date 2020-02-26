@@ -20,13 +20,12 @@ Ledger-Native: By building a new network having its own native coin and balances
 
 Contract-Token: By deploying token contracts that store and transfer user wallet’s token balances.
 
-### Ledger-Native vs Contract-Token
-
-LydianElectrum uses both strategies at the same time, getting the best from each one: 
+And LydianElectrum uses both strategies at the same time, getting the best from each one: 
 
 Ledger-Native: Mining fees are paid on native currency, so miners will get stablecoins for their task.
 
 Contract-Token: Every oracle centralized actions (mint/destroy) to keep the backed fiat in-sync will be regulated by an ERC-20 Smart Contract.
+
 
 ### Stablecoin CryptoEuro
 
@@ -62,8 +61,14 @@ some early feedback which can make both your efforts much lighter as well as our
 and merge procedures quick and simple.
 
 
+## LydianElectrum node deployment
+
+To deploy your own LE node, follow the instructions at file LE-node-deployment.txt
+
+
 ## License
 
 LydianElectrum is licensed under the
 [GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html),
 also included in our repository in the `COPYING.LESSER` file.
+

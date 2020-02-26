@@ -1,73 +1,42 @@
-## LydianElectrum
+Lydian Electrum testnet node deployment:
 
-Ethereum fork on Golang to deploy a stablecoin native crytocurrency fully Smart Contract driven
+// Set up local dirs
+cd /home/ubuntu/
+mkdir lydianElectrum/
+cd /home/ubuntu/lydianElectrum/
 
-Motto: "When 1000000000000000000 weis is 1 euro".
+// Download source code
+git clone git@github.com:juanmarketpayio/go-ethereum.git
 
+// Set Electrum fork upgraded to latest commit
+cd /home/ubuntu/lydianElectrum/go-ethereum/
+git checkout 43c7e4cb18628782094c5f931f4af70828056b6b
 
-### Intro, what it is LydianElectrum?
-	
-LydianElectrum is an Ethereum code fork that allows a ledger-native stablecoin to rule blockchain transactions.
+// Compile
+make geth
 
-Besides, LydianElectrum by default adds the standard feature of tokenizing the native stablecoin into an ERC-20 master contract.
+// Set up genesis file
+cd /home/ubuntu/lydianElectrum/
+cp go-ethereum/lydianElectrum/genesis.json .
 
+// Write genesis state
+go-ethereum/build/bin/geth --datadir myLydianElectrum init genesis.json
 
-### Ledger-Native vs Contract-Token
+// Start miner node replacing 0x2 with your wallet address
+go-ethereum/build/bin/geth --networkid 99 --datadir myLydianElectrum --rpc --rpcapi "db,eth,net,web3,personal" --rpcport "8546" --etherbase "0x0000000000000000000000000000000000000002" --gasprice "0" --mine --allow-insecure-unlock
 
-There are two ways to develop a new coin on Blockchain:
+// Console on another session
+cd /home/ubuntu/lydianElectrum/
+go-ethereum/build/bin/geth --networkid 99 --datadir myLydianElectrum attach ipc:myLydianElectrum/geth.ipc
 
-Ledger-Native: By building a new network having its own native coin and balances are stored on the ledger.
+// Check the node is in-sync
+eth.syncing;
+	false
 
-Contract-Token: By deploying token contracts that store and transfer user wallet’s token balances.
-
-And LydianElectrum uses both strategies at the same time, getting the best from each one: 
-
-Ledger-Native: Mining fees are paid on native currency, so miners will get stablecoins for their task.
-
-Contract-Token: Every oracle centralized actions (mint/destroy) to keep the backed fiat in-sync will be regulated by an ERC-20 Smart Contract.
-
-
-### Stablecoin CryptoEuro
-
-LydianElectrum native coin is called CryptoEuro. It is a stablecoin backed 1:1 by Euro. The balance field has 18 decimals, so if your wallet has a balance of 1000000000000000000 you will be able to withdraw fiat for 1 euro into your bank account.
-
-
-### Oracle mint/destroy process
-
-In order to keep the 1:1 euro back for CryptoEuro, there is an oracle process to mint coins whenever fiat deposits are carried out.
-
-Withdrawns trigger same process back to front, destroying user wallet’s coins.
-
-
-### Miners’ fees and rewards
-
-LydianElectrum gets consensus about new blocks by using the same PoW mechanism as Ethereum with one small difference: miners don’t receive rewards, just fees.
-
-Rewards in Ethereum are inflationist incentives to optimze the miner process, but they are out of the scope for stablecoin blockchains such as LydianElectrum.
-
-A stablecoin network backs every cryptocoin with a fiat counterpart deposited on a bank vault. So there is no chance to create new coins (rewards) out of nothing to incentivize mining process. 
-
-By paying miners with fees, LydianElectrum guarantees every miner will receive a backed amount of CryptoEuros for his work, inmediatly tradable to fiat euros through an oracle withdraw.
+// Check CryptoEuro master contract total supply
+var cryptoEuroContract = web3.eth.contract([ { "constant": true, "inputs": [], "name": "debugTransferred", "outputs": [ { "name": "", "type": "uint256" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "name", "outputs": [ { "name": "", "type": "string" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [ { "name": "_spender", "type": "address" }, { "name": "_amount", "type": "uint256" } ], "name": "approve", "outputs": [ { "name": "success", "type": "bool" } ], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "debugSenderBalance", "outputs": [ { "name": "", "type": "uint256" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "totalSupply", "outputs": [ { "name": "", "type": "uint256" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [ { "name": "_from", "type": "address" }, { "name": "_to", "type": "address" }, { "name": "_amount", "type": "uint256" } ], "name": "transferFrom", "outputs": [ { "name": "success", "type": "bool" } ], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "decimals", "outputs": [ { "name": "", "type": "uint8" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "initialSupply", "outputs": [ { "name": "", "type": "uint256" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "debugSender", "outputs": [ { "name": "", "type": "address" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [ { "name": "_to", "type": "address" }, { "name": "_amount", "type": "uint256" } ], "name": "mint", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "standard", "outputs": [ { "name": "", "type": "string" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [], "name": "halt", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [ { "name": "_owner", "type": "address" } ], "name": "balanceOf", "outputs": [ { "name": "balance", "type": "uint256" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [ { "name": "_owner", "type": "address" } ], "name": "updateOwner", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "operations", "outputs": [ { "name": "", "type": "string" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "contractBalance", "outputs": [ { "name": "", "type": "uint256" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "owner", "outputs": [ { "name": "", "type": "address" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [ { "name": "_to", "type": "address" }, { "name": "_amount", "type": "uint256" } ], "name": "transferOrigin", "outputs": [ { "name": "success", "type": "bool" } ], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "symbol", "outputs": [ { "name": "", "type": "string" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [ { "name": "_from", "type": "address" }, { "name": "_amount", "type": "uint256" } ], "name": "destroy", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": false, "inputs": [ { "name": "_to", "type": "address" }, { "name": "_amount", "type": "uint256" } ], "name": "transfer", "outputs": [ { "name": "success", "type": "bool" } ], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [], "name": "halted", "outputs": [ { "name": "", "type": "bool" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": false, "inputs": [], "name": "unhalt", "outputs": [], "payable": false, "stateMutability": "nonpayable", "type": "function" }, { "constant": true, "inputs": [ { "name": "_owner", "type": "address" }, { "name": "_spender", "type": "address" } ], "name": "allowance", "outputs": [ { "name": "remaining", "type": "uint256" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "constant": true, "inputs": [], "name": "debugOrigin", "outputs": [ { "name": "", "type": "address" } ], "payable": false, "stateMutability": "view", "type": "function" }, { "inputs": [], "payable": false, "stateMutability": "nonpayable", "type": "constructor" }, { "anonymous": false, "inputs": [ { "indexed": true, "name": "_from", "type": "address" }, { "indexed": true, "name": "_to", "type": "address" }, { "indexed": false, "name": "_amount", "type": "uint256" } ], "name": "Transfer", "type": "event" }, { "anonymous": false, "inputs": [ { "indexed": true, "name": "_owner", "type": "address" }, { "indexed": true, "name": "_spender", "type": "address" }, { "indexed": false, "name": "_amount", "type": "uint256" } ], "name": "Approval", "type": "event" }, { "anonymous": false, "inputs": [ { "indexed": true, "name": "_to", "type": "address" }, { "indexed": false, "name": "_amount", "type": "uint256" } ], "name": "Mint", "type": "event" }, { "anonymous": false, "inputs": [ { "indexed": true, "name": "_from", "type": "address" }, { "indexed": false, "name": "_amount", "type": "uint256" } ], "name": "Destroy", "type": "event" }, { "anonymous": false, "inputs": [ { "indexed": false, "name": "_switch", "type": "bool" }, { "indexed": false, "name": "_halter", "type": "address" }, { "indexed": false, "name": "_timestamp", "type": "uint256" } ], "name": "Halt", "type": "event" } ]);
+var cryptoEuro = cryptoEuroContract.at('0x88e726de6cbadc47159c6ccd4f7868ae7a037730');
+cryptoEuro.totalSupply();
+	1e+21
 
 
-## Contribution
-
-Thank you for considering to help out with the source code! We welcome contributions
-from anyone!
-
-If you'd like to contribute to LydianElectrum, please check up with the core devs first on juan@marketpay.io
-to ensure those changes are in line with the general philosophy of the project and/or get
-some early feedback which can make both your efforts much lighter as well as our review
-and merge procedures quick and simple.
-
-
-## LydianElectrum node deployment
-
-To deploy your own LE node, follow the instructions at file LE-node-deployment.txt
-
-
-## License
-
-LydianElectrum is licensed under the
-[GNU Lesser General Public License v3.0](https://www.gnu.org/licenses/lgpl-3.0.en.html),
-also included in our repository in the `COPYING.LESSER` file.
